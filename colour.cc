@@ -105,6 +105,14 @@ void colour_t::assign( uint64_t v ) {
 	hash_value[1] = hash_value[0];
 }
 
+colour_t colour_t::reverse() const {
+	colour_t r( original_colour );
+	r.hash_value[0] = hash_value[1];
+	r.hash_value[1] = hash_value[0];
+	return r;
+}
+
+
 colour_t::colour_t( uint64_t v ) {
 	assign( v );
 }

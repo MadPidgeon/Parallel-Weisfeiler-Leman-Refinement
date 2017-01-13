@@ -82,7 +82,6 @@ vector<int> clean_matrix( const vector<colour_t>& matrix ) { // not canonical
 	return R;
 }
 
-
 vector<vertex_tuple_t> edge_distribution( int p ) {
 	// ugly, but easiest to change distribution with
 	vector<vertex_tuple_t> local_edges;
@@ -95,6 +94,31 @@ vector<vertex_tuple_t> edge_distribution( int p ) {
 	return local_edges;
 }
 
+vector<vertex_tuple_t> block_edge_distribution( int p ) {
+	int ks = N / (2*P);
+	int rs = 2*ks;
+	int c = 0;
+	vector<vertex_tuple_t> L;
+	for( int x = p*rs; x < (p+1)*rs; ++x )
+		for( int y = x; y >= p*rs; --y )
+			L.push_back( {y,x} );
+	for( int x = (p+1)*rs; x < N; ++x )
+		for( int y = p*rs; y < p*rs+ks; ++y )
+			L.push_back( {y,x} );
+	for( int it = 0; it < p; ++it )
+		for( int x = p*rs; x < (p+1)*rs; ++x  )
+			for( int y = it*rs+ks; y < (it+1)*rs; ++y )
+				L.push_back( {y,x} );
+	for( int x = P*rs; x < N; ++x ) 
+		for( int y = p*rs; y < (p+1)*rs; ++y ) 
+			L.push_back( {y,x} );
+	for( int x = P*rs; x < N; ++x )
+		for( int y = P*rs; y <= x; ++y )
+			if( (c++) % P == p )
+				L.push_back( {y,x} );
+	return L;
+}
+
 void processor_main() {
 	bsp_begin( P );
 	unsigned int p = bsp_pid();
@@ -104,7 +128,7 @@ void processor_main() {
 	vector<colour_t> coloured_graph[2] = { vector<colour_t>( T ), vector<colour_t>( T ) };
 	bsp_push_reg( coloured_graph[0].data(), sizeof(colour_t)*T );
 	bsp_push_reg( coloured_graph[1].data(), sizeof(colour_t)*T );
-	auto local_edges = edge_distribution( p );
+	auto local_edges = block_edge_distribution( p );
 	unordered_set<colour_t> colours;
 
 	bsp_sync();
@@ -115,7 +139,6 @@ void processor_main() {
 		auto& M = coloured_graph[parity];
 		auto& newM = coloured_graph[not parity];
 		unstable = false;
-		// local_edges = {{0,1},{1,0}};
 
 		// iterator over the local edges
 		for( auto t : local_edges ) {
@@ -125,7 +148,6 @@ void processor_main() {
 			// generate new colour for the edge through the colour pattern
 			for( int i = 0; i < N; ++i )
 				colour_pattern.push_back({ M[m_index(t[0],i)], M[m_index(i,t[1])] });
-			// sort( colour_pattern.begin(), colour_pattern.end() );
 			newM[index].assign( old_colour, colour_pattern );
 			// share new edge colour
 			for( int q = 0; q < P; ++q )
@@ -137,19 +159,21 @@ void processor_main() {
 		iterations++;
 		bsp_sync();
 
+		for( int y = 0; y < N; ++y )
+			for( int x = y+1; x < N; ++x )
+				newM[m_index( x, y )] = newM[m_index( y, x )].reverse();
+
 		for( int i = 0; i < T; ++i )
 			colours.insert( coloured_graph[parity][i] );
 		if( colours.size() != relation_count )
 			unstable = true;
 		relation_count = colours.size();
 		colours.clear();
-
-		output_matrix( p, coloured_graph[parity] );
 	}
 
-	// output_matrix( p, coloured_graph[parity] );
-	if( p == 0 )
-		cout << clean_matrix( coloured_graph[parity] ) << endl;
+	/*if( p == 0 )
+		cout << clean_matrix( coloured_graph[parity] ) << endl;*/
+	output_matrix( p, coloured_graph[parity] );
 	if( p == 0 )
 		cout << endl << "iterations: " << iterations << endl;
 	bsp_end();

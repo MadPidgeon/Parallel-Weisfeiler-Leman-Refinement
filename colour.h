@@ -48,6 +48,7 @@ struct colour_t {
 	colour_t();
 	colour_t( uint64_t v );
 	colour_t( colour_t col, colour_pattern_t pat );
+	colour_t reverse() const;
 	bool operator==( const colour_t& other ) const;
 	bool operator<( const colour_t& other ) const;
 	void assign( uint64_t v );
