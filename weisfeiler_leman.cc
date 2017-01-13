@@ -66,6 +66,23 @@ void output_matrix( int p, const vector<colour_t>& matrix ) {
 	}
 }
 
+vector<int> clean_matrix( const vector<colour_t>& matrix ) { // not canonical
+	size_t nn = matrix.size();
+	map<colour_t,int> M;
+	vector<int> R( nn );
+	int c = 0;
+	for( int i = 0; i < nn; ++i ) {
+		auto f = M.find( matrix[i] );
+		if( f == M.end() ) {
+			R[i] = c;
+			M[matrix[i]] = c++; 
+		} else
+			R[i] = f->second;
+	}
+	return R;
+}
+
+
 vector<vertex_tuple_t> edge_distribution( int p ) {
 	// ugly, but easiest to change distribution with
 	vector<vertex_tuple_t> local_edges;
@@ -98,6 +115,7 @@ void processor_main() {
 		auto& M = coloured_graph[parity];
 		auto& newM = coloured_graph[not parity];
 		unstable = false;
+		// local_edges = {{0,1},{1,0}};
 
 		// iterator over the local edges
 		for( auto t : local_edges ) {
@@ -107,7 +125,7 @@ void processor_main() {
 			// generate new colour for the edge through the colour pattern
 			for( int i = 0; i < N; ++i )
 				colour_pattern.push_back({ M[m_index(t[0],i)], M[m_index(i,t[1])] });
-			sort( colour_pattern.begin(), colour_pattern.end() );
+			// sort( colour_pattern.begin(), colour_pattern.end() );
 			newM[index].assign( old_colour, colour_pattern );
 			// share new edge colour
 			for( int q = 0; q < P; ++q )
@@ -125,9 +143,13 @@ void processor_main() {
 			unstable = true;
 		relation_count = colours.size();
 		colours.clear();
+
+		output_matrix( p, coloured_graph[parity] );
 	}
 
-	output_matrix( p, coloured_graph[parity] );
+	// output_matrix( p, coloured_graph[parity] );
+	if( p == 0 )
+		cout << clean_matrix( coloured_graph[parity] ) << endl;
 	if( p == 0 )
 		cout << endl << "iterations: " << iterations << endl;
 	bsp_end();

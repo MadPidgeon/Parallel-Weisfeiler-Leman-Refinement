@@ -3,13 +3,14 @@ g++ -c colour.cc -std=c++11
 */
 
 #include "colour.h"
+#include "ext.h"
 #include "city.h"
 
 using namespace std;
 
 size_t hash_t::raw( char* s ) const {
-	memcpy( s, &value, sizeof( colour_t ) );
-	return sizeof( colour_t );
+	memcpy( s, &value, sizeof( hash_t ) );
+	return sizeof( hash_t );
 }
 
 void hash_t::assign( const char* str, size_t len ) {
@@ -41,35 +42,67 @@ hash_t::hash_t( const char* str, size_t len ) {
 }
 
 std::ostream& operator<<( std::ostream& os, hash_t H ) {
-	return os << std::hex << H.value.first << H.value.second << std::dec;
+	return os << std::hex << std::setfill('0') << std::setw(16) << H.value.first << std::setw(16) << H.value.second << std::dec;
 }
 
 /*std::istream& operator>>( std::istream& is, hash_t& H ) {
 
 }*/
 
-void colour_t::assign( colour_t col, bool sym, colour_pattern_t pat ) {
+struct colour_pattern_sort_functor_t {
+	const int i;
+	colour_pattern_sort_functor_t( int _i ) : i(_i) {} 
+	bool operator()( const std::array<colour_t,k>& a, const std::array<colour_t,k>& b ) const { // assumes k = 2
+		// for i = 0: sorts regularly on first component, then second component
+		// for i = 1: inversion sort on second component, then first component
+		return a[i].less_than( b[i], i ) or ( a[i] == b[i] and a[!i].less_than( b[!i], i ) );
+	}
+};
+
+void hex_out( ostream& ss, char* s, int l ) {
+	ss << std::hex;
+	for( int i = l-1; i >= 0; --i )
+		ss << std::setw(2) << int( s[i] );
+	ss << std::dec;
+}
+
+void colour_t::assign( colour_t col, colour_pattern_t pat ) {
+	#pragma message("Warning: Your code assumes k = 2!")
 	original_colour = col.original_colour;
-	is_symmetrical = sym;
-	size_t l = sizeof( colour_t ), p = pat.size(), n = (1+2*p)*l;
+	size_t l = sizeof( hash_t ), p = pat.size(), n = (1+k*p)*l;
 	char* s = new char[ n ];
-	col.hash_value.raw( s );
-	for( int i = 0; i < p; ++i )
-		for( int j = 0; j < 2; ++j )
-			pat[i][j].hash_value.raw( s + (1 + i*2 + j)*l );
-	hash_value.assign( s, n );
+	// ostringstream ss;
+	for( int h = 0; h < 2; ++h ) { // for some reason this fails
+		std::sort( pat.begin(), pat.end(), colour_pattern_sort_functor_t(h) );
+		// ss << pat << endl;
+		col.hash_value[h].raw( s );
+		// ss << col.hash_value[h] << "  ";
+		for( int i = 0; i < p; ++i )
+			for( int j = 0; j < k; ++j ) { // assumes k = 2 
+				//ss << pat[i][j^h].hash_value[h] << " ";
+				pat[i][j^h].hash_value[h].raw( s + (1 + i*k + j)*l );
+			}
+		hash_value[h].assign( s, n );
+		/*ss << endl;
+		
+		ss << hash_value[h] << endl;
+		hex_out( ss, s, n );
+		ss << "----" << n << endl;*/
+	}
+	// ss << endl << "!!!!!!!!!!" << endl;
+	// cout << ss.str() << endl;
 	delete [] s;
 }
 
-colour_t::colour_t( colour_t col, bool sym, colour_pattern_t pat ) {
-	assign( col, sym, pat );
+colour_t::colour_t( colour_t col, colour_pattern_t pat ) {
+	assign( col, pat );
 }
 
 
 void colour_t::assign( uint64_t v ) {
 	original_colour = v;
-	is_symmetrical = 1;
-	hash_value.assign( v );
+	hash_value[0].assign( v );
+	hash_value[1] = hash_value[0];
 }
 
 colour_t::colour_t( uint64_t v ) {
@@ -81,25 +114,31 @@ colour_t::colour_t() {
 }
 
 bool colour_t::operator==( const colour_t& other ) const {
-	return hash_value == other.hash_value and
-		original_colour == other.original_colour and 
-		is_symmetrical == other.is_symmetrical;
+	return hash_value[0] == other.hash_value[0] and
+		hash_value[1] == other.hash_value[1] and
+		original_colour == other.original_colour;
 }
 
-bool colour_t::operator<( const colour_t& other ) const {
-	if( hash_value < other.hash_value )
+bool colour_t::less_than( const colour_t& other, int i ) const {
+	if( hash_value[i] < other.hash_value[i] )
 		return true;
-	else if( other.hash_value < hash_value )
+	else if( other.hash_value[i] < hash_value[i] )
+		return false;
+	if( hash_value[!i] < other.hash_value[!i] )
+		return true;
+	else if( other.hash_value[!i] < hash_value[!i] )
 		return false;
 	if( original_colour < other.original_colour )
 		return true;
 	else if( original_colour > other.original_colour )
 		return false;
-	if( ( not is_symmetrical ) and other.is_symmetrical )
-		return true;
 	return false;
 }
 
+bool colour_t::operator<( const colour_t& other ) const { // non-canonical
+	return less_than( other, 0 );
+}
+
 std::ostream& operator<<( std::ostream& os, colour_t C ) {
-	return os << C.hash_value;
+	return os << "(" << C.hash_value[0] << ":" << C.hash_value[1] << ")";
 }

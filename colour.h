@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 #include <cstring>
+#include <iomanip>
 #include "city.h"
 
 const uint k = 2;
@@ -41,22 +42,23 @@ struct colour_t;
 typedef std::vector<std::array<colour_t,k>> colour_pattern_t; 
 
 struct colour_t {
-	hash_t hash_value;
-	unsigned char original_colour : 2, is_symmetrical : 1;
+	hash_t hash_value[2];
+	unsigned char original_colour;
 
 	colour_t();
 	colour_t( uint64_t v );
-	colour_t( colour_t col, bool sym, colour_pattern_t pat );
+	colour_t( colour_t col, colour_pattern_t pat );
 	bool operator==( const colour_t& other ) const;
 	bool operator<( const colour_t& other ) const;
 	void assign( uint64_t v );
-	void assign( colour_t col, bool sym, colour_pattern_t pat );
+	void assign( colour_t col, colour_pattern_t pat );
+	bool less_than( const colour_t& other, int i ) const;
 };
 
 namespace std {
 	template <> struct hash<colour_t> {
 		size_t operator()( const colour_t& C ) const {
-			return hash<hash_t>()( C.hash_value );
+			return hash<hash_t>()( C.hash_value[0] );
 		}
 	};
 }
