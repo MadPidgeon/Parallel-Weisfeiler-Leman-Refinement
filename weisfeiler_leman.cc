@@ -182,7 +182,12 @@ void processor_main() {
 int main( int argc, char ** argv ) {
 	bsp_init( processor_main, argc, argv );
 	mcbsp_set_affinity_mode( COMPACT );
-	scanf( "%d %d %*[ \n\t]", &P, &N );
+	if( argc != 2 ) {
+		cout << "Missing processor count!" << endl;
+		return 1;
+	}
+	P = atoi( argv[1] );
+	scanf( "%d %*[ \n\t]", &N );
 	// usage: processors nodes matrix
 	T = N*N;
 	processor_main();
