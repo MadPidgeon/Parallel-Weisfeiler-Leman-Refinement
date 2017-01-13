@@ -108,7 +108,7 @@ void processor_main() {
 			for( int i = 0; i < N; ++i )
 				colour_pattern.push_back({ M[m_index(t[0],i)], M[m_index(i,t[1])] });
 			sort( colour_pattern.begin(), colour_pattern.end() );
-			newM[index].assign( old_colour, true /*TODO*/, colour_pattern );
+			newM[index].assign( old_colour, colour_pattern );
 			// share new edge colour
 			for( int q = 0; q < P; ++q )
 				if( q != p )
