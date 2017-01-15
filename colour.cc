@@ -3,7 +3,6 @@ g++ -c colour.cc -std=c++11
 */
 
 #include "colour.h"
-#include "ext.h"
 #include "city.h"
 
 using namespace std;
@@ -45,10 +44,6 @@ std::ostream& operator<<( std::ostream& os, hash_t H ) {
 	return os << std::hex << std::setfill('0') << std::setw(16) << H.value.first << std::setw(16) << H.value.second << std::dec;
 }
 
-/*std::istream& operator>>( std::istream& is, hash_t& H ) {
-
-}*/
-
 struct colour_pattern_sort_functor_t {
 	const int i;
 	colour_pattern_sort_functor_t( int _i ) : i(_i) {} 
@@ -71,26 +66,14 @@ void colour_t::assign( colour_t col, colour_pattern_t pat ) {
 	original_colour = col.original_colour;
 	size_t l = sizeof( hash_t ), p = pat.size(), n = (1+k*p)*l;
 	char* s = new char[ n ];
-	// ostringstream ss;
 	for( int h = 0; h < 2; ++h ) { // for some reason this fails
 		std::sort( pat.begin(), pat.end(), colour_pattern_sort_functor_t(h) );
-		// ss << pat << endl;
 		col.hash_value[h].raw( s );
-		// ss << col.hash_value[h] << "  ";
 		for( int i = 0; i < p; ++i )
-			for( int j = 0; j < k; ++j ) { // assumes k = 2 
-				//ss << pat[i][j^h].hash_value[h] << " ";
+			for( int j = 0; j < k; ++j ) // assumes k = 2 
 				pat[i][j^h].hash_value[h].raw( s + (1 + i*k + j)*l );
-			}
 		hash_value[h].assign( s, n );
-		/*ss << endl;
-		
-		ss << hash_value[h] << endl;
-		hex_out( ss, s, n );
-		ss << "----" << n << endl;*/
 	}
-	// ss << endl << "!!!!!!!!!!" << endl;
-	// cout << ss.str() << endl;
 	delete [] s;
 }
 
@@ -112,13 +95,12 @@ colour_t colour_t::reverse() const {
 	return r;
 }
 
-
 colour_t::colour_t( uint64_t v ) {
 	assign( v );
 }
 
 colour_t::colour_t() {
-	assign( 1337 );
+	assign( 524421 ); // arbitrary constant, recognisable for debugging purposes
 }
 
 bool colour_t::operator==( const colour_t& other ) const {
